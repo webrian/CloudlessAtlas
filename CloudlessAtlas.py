@@ -15,50 +15,10 @@ import glob
 import logging
 import logging.config
 import numpy
-from optparse import OptionParser
-import os
-import sys
 
 log = None
 
-def main(argv=None):
-    if argv is None:
-        argv = sys.argv
-
-    usage = "usage: %prog [options] src_dir dst_file"
-    parser = OptionParser(usage=usage)
-    parser.add_option("-i", "--index", dest="index", default=2, help="Index of darkest pixels")
-    parser.add_option("-t", "--tiles", dest="tiles", default=2, help="Number of tiles per side length")
-
-    (options, args) = parser.parse_args()
-
-    if len(args) != 2:
-        parser.print_usage()
-        sys.exit(0)
-
-    # Collect all input parameters
-    datadir = os.path.abspath(args[0])
-    output_file = os.path.abspath(args[1])
-    index = int(options.index)
-    tiles = int(options.tiles)
-        
-    # Get the logging configuration file
-    logging.config.fileConfig(argv[0].replace("py", "ini"))
-    # Get the root logger from the config file
-    global log
-    log = logging.getLogger(__name__)
-    
-    log.debug("Input Landsat 8 imagery are located in: %s" % datadir)
-    
-    # An array which holds absolute paths to all images to consider
-    filenames = []
-
-    for root, dirs, files in os.walk(datadir):
-        for f in files:
-            if f.endswith(("LGN00.tif","LGN01.tif")):
-                log.debug("%s/%s" % (root, f))
-                filenames.extend(glob.glob(os.path.join(root, f)))
-
+def run(filenames, dst_file, index=2, tiles=2):
     log.debug("Number of input files to consider: %s" % len(filenames))
 
     ul = [None, None]
@@ -222,6 +182,46 @@ def main(argv=None):
     del out_band1, out_band2, out_band3, out_dataset
     
     log.debug("Result is saved to %s" % output_file)
+    
+    return 0
 
 if __name__ == "__main__":
-    sys.exit(main())
+    from optparse import OptionParser
+    import os
+    import sys
+    
+    usage = "usage: %prog [options] src_dir dst_file"
+    parser = OptionParser(usage=usage)
+    parser.add_option("-i", "--index", dest="index", default=2, help="Index of darkest pixels")
+    parser.add_option("-t", "--tiles", dest="tiles", default=2, help="Number of tiles per side length")
+
+    (options, args) = parser.parse_args()
+
+    if len(args) != 2:
+        parser.print_usage()
+        sys.exit(0)
+
+    # Collect all input parameters
+    datadir = os.path.abspath(args[0])
+    output_file = os.path.abspath(args[1])
+    index = int(options.index)
+    tiles = int(options.tiles)
+        
+    # Get the logging configuration file
+    logging.config.fileConfig(sys.argv[0].replace("py", "ini"))
+    # Get the root logger from the config file
+    #global log
+    log = logging.getLogger(__name__)
+    
+    log.debug("Input Landsat 8 imagery are located in: %s" % datadir)
+    
+    # An array which holds absolute paths to all images to consider
+    filenames = []
+
+    for root, dirs, files in os.walk(datadir):
+        for f in files:
+            if f.endswith(("LGN00.tif","LGN01.tif")):
+                log.debug("%s/%s" % (root, f))
+                filenames.extend(glob.glob(os.path.join(root, f)))
+                
+    sys.exit(run(filenames, output_file, index=index, tiles=tiles))
